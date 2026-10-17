@@ -193,7 +193,14 @@ export async function executeNameSearch(query: string, platforms: PlatformId[]):
       return exec;
     }
   } catch (e: any) {
-    if (e?.status === 503 || e?.status === 500 || e?.status === 504 || e?.status === 502) {
+    const isProd = import.meta.env.PROD && import.meta.env.MODE === 'production';
+    if (
+      e?.status === 503 ||
+      e?.status === 500 ||
+      e?.status === 504 ||
+      e?.status === 502 ||
+      (isProd && (e?.status === 0 || e?.status >= 400))
+    ) {
       const exec: SearchExecution = {
         id: searchId,
         type: 'name',
@@ -209,7 +216,7 @@ export async function executeNameSearch(query: string, platforms: PlatformId[]):
       setExecution(exec);
       throw e;
     }
-    // If connection failed / network offline (e.g. unit test mock), proceed to demo fallback
+    // If connection failed / network offline in local dev/test, proceed to demo fallback
   }
 
   // Demo Fallback (Offline Mode only)
@@ -326,7 +333,14 @@ export async function executePhotoSearch(
       return exec;
     }
   } catch (e: any) {
-    if (e?.status === 503 || e?.status === 500 || e?.status === 504 || e?.status === 502) {
+    const isProd = import.meta.env.PROD && import.meta.env.MODE === 'production';
+    if (
+      e?.status === 503 ||
+      e?.status === 500 ||
+      e?.status === 504 ||
+      e?.status === 502 ||
+      (isProd && (e?.status === 0 || e?.status >= 400))
+    ) {
       const exec: SearchExecution = {
         id: searchId,
         type: 'photo',
@@ -345,7 +359,7 @@ export async function executePhotoSearch(
       setExecution(exec);
       throw e;
     }
-    // Proceed to demo fallback if network offline (e.g. unit test mock)
+    // Proceed to demo fallback if network offline in local dev/test
   }
 
   // Demo Fallback (Offline Mode only)

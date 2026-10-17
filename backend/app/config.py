@@ -33,7 +33,19 @@ class Settings:
         self._app_env = e('APP_ENV', 'development')
         self.secret_key = e('SECRET_KEY', '')
         self.database_url = e('DATABASE_URL', 'postgresql+psycopg://phototrace:phototrace@localhost:5432/phototrace')
-        self.cors_origins = [o.strip() for o in e('CORS_ORIGINS', 'http://localhost:5173').split(',') if o.strip()]
+        raw_cors = e('CORS_ORIGINS', '')
+        custom_origins = [o.strip().rstrip('/') for o in raw_cors.split(',') if o.strip()]
+        default_origins = [
+            'https://phototrace-ai.netlify.app',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+        ]
+        merged_origins: list[str] = []
+        for orig in default_origins + custom_origins:
+            if orig and orig not in merged_origins:
+                merged_origins.append(orig)
+        self.cors_origins = merged_origins
         self.cookie_secure = e('COOKIE_SECURE', 'true' if self.app_env == 'production' else 'false').lower() == 'true'
         self.cookie_samesite = e('COOKIE_SAMESITE', 'lax').lower()
         self.session_ttl = int(e('SESSION_TTL_SECONDS', '604800'))
@@ -70,43 +82,48 @@ class Settings:
     @property
     def google_search_api_key(self) -> Optional[str]:
         val = os.environ.get('GOOGLE_SEARCH_API_KEY')
-        return val if val is not None else self._google_search_api_key
+        res = val.strip().strip("'\"") if (val is not None and val.strip()) else self._google_search_api_key
+        return res or None
 
     @google_search_api_key.setter
     def google_search_api_key(self, v: Optional[str]):
-        self._google_search_api_key = v
+        self._google_search_api_key = v.strip().strip("'\"") if (v and isinstance(v, str)) else v
 
     @property
     def google_search_cx(self) -> Optional[str]:
         val = os.environ.get('GOOGLE_SEARCH_CX')
-        return val if val is not None else self._google_search_cx
+        res = val.strip().strip("'\"") if (val is not None and val.strip()) else self._google_search_cx
+        return res or None
 
     @google_search_cx.setter
     def google_search_cx(self, v: Optional[str]):
-        self._google_search_cx = v
+        self._google_search_cx = v.strip().strip("'\"") if (v and isinstance(v, str)) else v
 
     @property
     def google_vision_api_key(self) -> Optional[str]:
         val = os.environ.get('GOOGLE_VISION_API_KEY')
-        return val if val is not None else self._google_vision_api_key
+        res = val.strip().strip("'\"") if (val is not None and val.strip()) else self._google_vision_api_key
+        return res or None
 
     @google_vision_api_key.setter
     def google_vision_api_key(self, v: Optional[str]):
-        self._google_vision_api_key = v
+        self._google_vision_api_key = v.strip().strip("'\"") if (v and isinstance(v, str)) else v
 
     @property
     def bing_search_api_key(self) -> Optional[str]:
         val = os.environ.get('BING_SEARCH_API_KEY')
-        return val if val is not None else self._bing_search_api_key
+        res = val.strip().strip("'\"") if (val is not None and val.strip()) else self._bing_search_api_key
+        return res or None
 
     @bing_search_api_key.setter
     def bing_search_api_key(self, v: Optional[str]):
-        self._bing_search_api_key = v
+        self._bing_search_api_key = v.strip().strip("'\"") if (v and isinstance(v, str)) else v
 
     @property
     def serpapi_api_key(self) -> Optional[str]:
         val = os.environ.get('SERPAPI_API_KEY')
-        return val if val is not None else self._serpapi_api_key
+        res = val.strip().strip("'\"") if (val is not None and val.strip()) else self._serpapi_api_key
+        return res or None
 
     @serpapi_api_key.setter
     def serpapi_api_key(self, v: Optional[str]):

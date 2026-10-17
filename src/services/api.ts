@@ -1,5 +1,6 @@
-// Single API layer. Base URL comes from VITE_API_URL (no hardcoded production URLs).
-const BASE=(import.meta.env.VITE_API_URL as string|undefined)??(import.meta.env.DEV?'http://localhost:8000':'');
+const envUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+const isProd = import.meta.env.PROD && import.meta.env.MODE === 'production';
+const BASE = envUrl || (isProd ? 'https://phototrace-backend.onrender.com' : (import.meta.env.DEV ? 'http://localhost:8000' : ''));
 export interface ProfileData{bio:string|null;instagram_url:string|null;tiktok_url:string|null;facebook_url:string|null;linkedin_url:string|null;has_photo:boolean;is_public:boolean;show_bio:boolean;show_social_links:boolean}
 export interface AppUser{id:string;full_name:string;email:string|null;phone:string|null;country:string;is_verified:boolean;profile:ProfileData|null}
 export interface Session{user:AppUser;csrf_token:string}
@@ -10,7 +11,7 @@ export const setCsrf=(t:string)=>{csrf=t};
 export const photoUrl=(v:number)=>`${BASE}/api/v1/profile/photo?v=${v}`;
 async function req<T>(method:string,path:string,body?:unknown,form?:FormData):Promise<T>{
  const controller=new AbortController();
- const timeoutId=setTimeout(()=>controller.abort(),20000);
+ const timeoutId=setTimeout(()=>controller.abort(),45000);
  let res:Response;
  try{
   res=await fetch(`${BASE}/api/v1${path}`,{

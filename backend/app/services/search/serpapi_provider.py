@@ -139,7 +139,7 @@ def extract_serpapi_image(item: dict) -> Optional[str]:
 
 class SerpApiSearchProvider(BaseSearchProvider):
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key
+        self.api_key = api_key.strip().strip("'\"") if isinstance(api_key, str) else api_key
 
     def provider_name(self) -> str:
         return "serpapi"
@@ -289,7 +289,7 @@ class SerpApiSearchProvider(BaseSearchProvider):
 
         clean_name = (name or "").strip() or None
 
-        timeout_cfg = httpx.Timeout(25.0, connect=5.0)
+        timeout_cfg = httpx.Timeout(45.0, connect=10.0)
         async with httpx.AsyncClient(timeout=timeout_cfg) as client:
             # 1. Upload image bytes to SerpApi Image API
             try:

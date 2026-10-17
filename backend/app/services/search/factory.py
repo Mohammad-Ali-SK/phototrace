@@ -45,18 +45,23 @@ def get_provider_status() -> dict[str, Any]:
     bing = BingSearchProvider(api_key=getattr(settings, 'bing_search_api_key', None))
     serpapi = SerpApiSearchProvider(api_key=getattr(settings, 'serpapi_api_key', None))
 
+    is_live = active.provider_name() != "demo"
+    instructions = (
+        f"Operating in Live search mode with {active.provider_name()} provider."
+        if is_live else
+        "Currently operating in Demo mode with clearly labeled illustrative results. "
+        "To connect live public searching: configure GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX (and optional GOOGLE_VISION_API_KEY for reverse-image), "
+        "or BING_SEARCH_API_KEY, or SERPAPI_API_KEY in backend/.env."
+    )
+
     return {
         "active_provider": active.provider_name(),
-        "is_live": active.provider_name() != "demo",
+        "is_live": is_live,
         "providers": {
             "demo": {"configured": True, "name": "Illustrative Demo Dataset", "live": False},
             "google": {"configured": google.is_configured(), "name": "Google Custom Search & Vision", "live": True},
             "bing": {"configured": bing.is_configured(), "name": "Microsoft Bing Search", "live": True},
             "serpapi": {"configured": serpapi.is_configured(), "name": "SerpApi Google Engine", "live": True},
         },
-        "instructions": (
-            "Currently operating in Demo mode with clearly labeled illustrative results. "
-            "To connect live public searching: configure GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX (and optional GOOGLE_VISION_API_KEY for reverse-image), "
-            "or BING_SEARCH_API_KEY, or SERPAPI_API_KEY in backend/.env."
-        )
+        "instructions": instructions
     }

@@ -16,7 +16,14 @@ from .security import generate_otp,hash_otp,mask,normalize_contact,sha256
 from .services.search import get_search_provider,get_provider_status,get_cached_result
 settings.validate()
 app=FastAPI(title='PhotoTrace AI API',version='1.0.0',description='Passwordless (OTP) authentication and profile API. Interactive docs at /docs.')
-app.add_middleware(CORSMiddleware,allow_origins=settings.cors_origins,allow_credentials=True,allow_methods=['GET','POST','PATCH','DELETE'],allow_headers=['Content-Type','X-CSRF-Token'])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allow_headers=['*'],
+    expose_headers=['Content-Type', 'X-CSRF-Token', 'Retry-After'],
+)
 @app.middleware('http')
 async def sec_headers(request:Request,call_next):
     r=await call_next(request);r.headers['X-Content-Type-Options']='nosniff';r.headers['Cache-Control']='no-store';return r

@@ -339,6 +339,39 @@ async def test_serpapi_image_mapping_per_result(monkeypatch):
     # Result 2 has None and does not steal Result 1's thumbnail
     assert res.results[1].img is None
 
+def test_cors_preflight_production_origin(c):
+    headers = {
+        'Origin': 'https://phototrace-ai.netlify.app',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type, x-csrf-token',
+    }
+    r = c.options(P + '/search/name', headers=headers)
+    assert r.status_code == 200
+    assert r.headers.get('access-control-allow-origin') == 'https://phototrace-ai.netlify.app'
+    assert r.headers.get('access-control-allow-credentials') == 'true'
+    assert 'POST' in r.headers.get('access-control-allow-methods', '')
 
+def test_cors_post_production_origin(c):
+    headers = {
+        'Origin': 'https://phototrace-ai.netlify.app',
+    }
+    r = c.post(P + '/search/name', json={'query': 'sarah khan', 'platforms': ['instagram']}, headers=headers)
+    assert r.status_code == 200
+    assert r.headers.get('access-control-allow-origin') == 'https://phototrace-ai.netlify.app'
+    assert r.headers.get('access-control-allow-credentials') == 'true'
 
+def test_provider_status_instructions_live_vs_demo(monkeypatch):
+    from app.config import settings
+    # 1. Demo mode instructions
+    monkeypatch.setenv('SEARCH_PROVIDER', 'demo')
+    status = get_provider_status()
+    assert status['is_live'] is False
+    assert 'Demo mode' in status['instructions']
 
+    # 2. Live mode instructions
+    monkeypatch.setenv('SEARCH_PROVIDER', 'serpapi')
+    monkeypatch.setenv('SERPAPI_API_KEY', 'mock_valid_key')
+    status_live = get_provider_status()
+    assert status_live['is_live'] is True
+    assert status_live['active_provider'] == 'serpapi'
+    assert 'Operating in Live search mode' in status_live['instructions']
