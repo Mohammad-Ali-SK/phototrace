@@ -1,0 +1,21 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+html,body{overflow-x:hidden}body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f5ff;color:#0f172a}
+:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+@keyframes fl{50%{transform:translateY(-10px)}}.fl{animation:fl 5s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.btn{@apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50}
+.btn-p{@apply btn bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/25 hover:brightness-110}
+.btn-o{@apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50}
+.inp{@apply w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-indigo-500}
+html{scroll-behavior:smooth}
+.grad-anim{background-image:linear-gradient(90deg,#2563eb,#7c3aed,#c026d3,#7c3aed,#2563eb);background-size:300% 100%;animation:shift 10s linear infinite;color:#fff}
+@keyframes shift{to{background-position:300% 0}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.enter{animation:up .8s ease-out both}.enter-2{animation-delay:.15s}.enter-3{animation-delay:.3s}
+@keyframes flt{50%{transform:translateY(-6px)}}
+.fl-a{animation:flt 6s ease-in-out infinite}.fl-b{animation:flt 7s ease-in-out -2s infinite}.fl-main{animation:flt 8s ease-in-out -1s infinite}
+@keyframes pls{0%,100%{box-shadow:0 0 0 0 rgba(96,165,250,.55)}50%{box-shadow:0 0 0 14px rgba(96,165,250,0)}}.pulse{animation:pls 2.6s ease-out infinite}
+.glow{position:absolute;width:520px;height:520px;border-radius:9999px;filter:blur(110px);pointer-events:none;animation:drift 18s ease-in-out infinite alternate}.glow-b{animation-delay:-9s}
+@keyframes drift{to{transform:translate(60px,40px)}}
+.btn:hover{box-shadow:0 8px 24px -8px rgba(99,102,241,.6)}
+button,a,[role=button]{transition:transform .2s,box-shadow .2s,background-color .2s,border-color .2s}

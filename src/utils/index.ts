@@ -1,0 +1,4 @@
+const P=[['#f59e0b','#7c3aed'],['#06b6d4','#4f46e5'],['#ec4899','#6366f1'],['#10b981','#2563eb'],['#f43f5e','#7c3aed'],['#38bdf8','#1e3a8a']];
+export const avatar=(n:number)=>{const [a,b]=P[n%P.length];return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="200" height="240" fill="url(#g)"/><circle cx="100" cy="95" r="38" fill="#fff" fill-opacity=".85"/><path d="M30 240c0-60 30-92 70-92s70 32 70 92z" fill="#fff" fill-opacity=".85"/></svg>`)};
+export const ls=<T,>(k:string,d:T):T=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v) as T:d}catch{return d}};
+export const lsSet=(k:string,v:unknown)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{/* storage unavailable */}};

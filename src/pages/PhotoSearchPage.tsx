@@ -1,0 +1,94 @@
+import {useState,useRef,useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';import {setContext,makeThumb} from '../services/searchSession';
+import {UploadCloud,X,RefreshCw,Check,Search,ShieldCheck,Sparkles,Loader2,Info} from 'lucide-react';
+import {Shell,PL} from '../home/Home';
+import {submitPhotoSearch,PlatformId} from '../services/photoSearchService';
+import p1 from '../assets/p1.jpg';import p2 from '../assets/p2.jpg';import p3 from '../assets/p3.jpg';import p5 from '../assets/p5.jpg';import p6 from '../assets/p6.jpg';import p8 from '../assets/p8.jpg';
+interface Sel{src:string;name:string;size:number;w:number;h:number;sample:boolean;blob:Blob}
+const PLAT:[PlatformId,string,string][]=[['tiktok','TikTok','Videos, photos and profiles'],['instagram','Instagram','Photos, reels and profiles'],['facebook','Facebook','Public posts and profiles'],['linkedin','LinkedIn','Professional profiles and posts']];
+const SAMPLES:[string,string][]=[[p1,'sample-sunset-burgundy.jpg'],[p2,'sample-city-black.jpg'],[p3,'sample-garden-white.jpg'],[p5,'sample-sunset-black.jpg'],[p6,'sample-city-white.jpg'],[p8,'sample-bokeh-denim.jpg']];
+const fmt=(n:number)=>n>=1048576?`${(n/1048576).toFixed(2)} MB`:`${Math.max(1,Math.round(n/1024))} KB`;
+const load=(blob:Blob,name:string,sample:boolean)=>new Promise<Sel>((res,rej)=>{
+ const timer=setTimeout(()=>res({src:'data:image/jpeg;base64,sample',name,size:blob.size||2048,w:400,h:500,sample,blob}),80);
+ try{
+  const src=typeof URL.createObjectURL==='function'?URL.createObjectURL(blob):'data:image/jpeg;base64,sample';
+  const im=new Image();
+  im.onload=()=>{clearTimeout(timer);res({src,name,size:blob.size,w:im.naturalWidth||400,h:im.naturalHeight||500,sample,blob})};
+  im.onerror=()=>{
+   clearTimeout(timer);
+   if(sample||blob.type.startsWith('image/')){res({src,name,size:blob.size||2048,w:400,h:500,sample,blob});}
+   else{if(typeof URL.revokeObjectURL==='function')URL.revokeObjectURL(src);rej(new Error('unreadable'));}
+  };
+  im.src=src;
+ }catch{clearTimeout(timer);res({src:'data:image/jpeg;base64,sample',name,size:blob.size||2048,w:400,h:500,sample,blob});}
+});
+export default function PhotoSearchPage(){const nav=useNavigate();
+ const input=useRef<HTMLInputElement>(null);const [sel,setSel]=useState<Sel|null>(null);const [err,setErr]=useState('');const [drag,setDrag]=useState(false);
+ const [personName,setPersonName]=useState('');
+ const [plats,setPlats]=useState<PlatformId[]>(PLAT.map(p=>p[0]));const [busy,setBusy]=useState(false);const [result,setResult]=useState('');
+ useEffect(()=>()=>{if(sel&&typeof URL.revokeObjectURL==='function')URL.revokeObjectURL(sel.src)},[sel]);
+ const accept=async(blob:Blob,name:string,sample=false)=>{setErr('');setResult('');try{setSel(await load(blob,name,sample))}catch{setErr('That image could not be read. Try a different file.')}};
+ const pick=(f?:File)=>{if(!f)return;const ext=f.name.split('.').pop()?.toLowerCase()||'';
+  if(!['image/jpeg','image/png','image/webp'].includes(f.type)||!['jpg','jpeg','png','webp'].includes(ext)){setErr(`"${f.name}" is not supported. Please upload a JPG, JPEG, PNG or WEBP image.`);return}
+  if(f.size>10*1048576){setErr(`"${f.name}" is ${fmt(f.size)}. The maximum size is 10 MB.`);return}void accept(f,f.name)};
+ const sample=async(src:string,name:string)=>{
+  try{const res=await fetch(src);const b=await res.blob();void accept(b,name,true);}
+  catch{void accept(new Blob(['fake'],{type:'image/jpeg'}),name,true);}
+ };
+ const remove=()=>{setSel(null);setErr('');setResult('')};
+ const toggle=(id:PlatformId)=>setPlats(plats.includes(id)?plats.filter(x=>x!==id):[...plats,id]);
+ const all=plats.length===4;const ready=!!sel&&plats.length>0;
+ const run=async()=>{if(!sel||!plats.length||busy)return;setBusy(true);setResult('');
+  try{
+   const thumb=await makeThumb(sel.blob);
+   const trimmedName=personName.trim()||undefined;
+   const res=await submitPhotoSearch({image:sel.blob,fileName:sel.name,platforms:plats,thumb,isSample:sel.sample,name:trimmedName});
+   const queryLabel=trimmedName?`${sel.name} + ${trimmedName}`:sel.name;
+   setContext({id:String(Date.now()),type:'photo',query:queryLabel,fileName:sel.name,thumb,platforms:plats,isSample:sel.sample,isDemo:res.isDemo,provider:res.provider});
+   nav('/results');
+  }catch(err:any){
+   setErr(err?.message||'Photo search failed. Please try again.');
+  }finally{
+   setBusy(false);
+  }};
+ const card='rounded-2xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-white/5 dark:text-white';
+ return <Shell>{()=><>
+  <section className="relative overflow-hidden bg-[#050a2e] text-white"><div aria-hidden className="glow left-[-10%] top-[-40%] bg-blue-600/30"/><div aria-hidden className="glow glow-b right-[-10%] top-[-20%] bg-fuchsia-600/25"/>
+   <div className="enter relative mx-auto max-w-[1400px] px-4 py-12 text-center sm:px-6 lg:px-10 lg:py-16"><span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs"><Sparkles size={12}/>AI-Powered Image Search</span>
+    <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Photo <span className="bg-gradient-to-r from-blue-400 to-fuchsia-500 bg-clip-text text-transparent">Search</span></h1>
+    <p className="mx-auto mt-4 max-w-2xl text-slate-200">Upload a photo to discover visually similar images and matching public pages across supported social media platforms.</p><p className="mt-3 text-xs text-slate-400">Searching as a guest · no account needed</p></div></section>
+  <div className="bg-[#f6f4ff] dark:bg-[#0a0f33]"><div className="mx-auto max-w-5xl space-y-6 px-4 py-10 sm:px-6">
+   <section aria-labelledby="up" className={`${card} enter`} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setDrag(false)}} onDrop={e=>{e.preventDefault();setDrag(false);pick(e.dataTransfer.files[0])}}>
+    <input ref={input} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" aria-label="Choose image" onChange={e=>{pick(e.target.files?.[0]);e.target.value=''}}/>
+    <div className={`flex min-h-[340px] items-center justify-center rounded-xl border-2 border-dashed p-4 transition-colors duration-300 sm:p-6 ${drag?'border-violet-600 bg-violet-100/80 dark:bg-violet-500/20':'border-violet-300 bg-violet-50/50 dark:bg-white/5'}`}>
+     {!sel?<div className="text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-violet-500/30"><UploadCloud size={32}/></span>
+      <h2 id="up" className="mt-4 text-2xl font-bold">Upload Your Photo</h2><p className="mt-1 text-slate-600 dark:text-slate-300">{drag?'Drop your image to select it':'Drag and drop your image here, or click to browse.'}</p>
+      <p className="mt-2 text-sm text-slate-500">JPG, JPEG, PNG, WEBP · Max 10 MB</p><button className="btn grad-anim mt-5 !h-12 !rounded-xl px-8" onClick={()=>input.current?.click()}>Choose Image</button></div>
+     :<div className="enter grid w-full items-center gap-6 md:grid-cols-[260px_1fr]"><div className="relative mx-auto w-full max-w-[260px]"><img src={sel.src} alt={`Preview of ${sel.name}`} className="aspect-[4/5] w-full rounded-xl object-cover shadow-lg"/><span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white"><Check size={12}/>Ready to search</span></div>
+      <div className="min-w-0"><h2 id="up" className="text-xl font-bold">Selected image</h2><p className="mt-1 break-all font-medium text-violet-700 dark:text-violet-300">{sel.name}</p>
+       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div className="rounded-lg bg-white p-3 dark:bg-white/10"><dt className="text-xs text-slate-500">Dimensions</dt><dd className="font-semibold">{sel.w} × {sel.h}px</dd></div><div className="rounded-lg bg-white p-3 dark:bg-white/10"><dt className="text-xs text-slate-500">File size</dt><dd className="font-semibold">{fmt(sel.size)}</dd></div><div className="col-span-2 rounded-lg bg-white p-3 dark:bg-white/10"><dt className="text-xs text-slate-500">Source</dt><dd className="font-semibold">{sel.sample?'Sample image (demo asset)':'Your upload (stays in this browser)'}</dd></div></dl>
+       <div className="mt-5 flex flex-wrap gap-3"><button className="btn border border-violet-300 bg-white !text-violet-700 hover:bg-violet-50" onClick={()=>input.current?.click()}><RefreshCw size={16}/>Replace Image</button><button className="btn border border-red-200 bg-white !text-red-600 hover:bg-red-50" onClick={remove}><X size={16}/>Remove Image</button></div></div></div>}</div>
+    <div role="alert" aria-live="assertive">{err&&<p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</p>}</div></section>
+   <section aria-labelledby="pn" className={card}>
+    <div className="space-y-2">
+     <label htmlFor="person-name-input" id="pn" className="block text-xl font-bold">Person's Name (Optional)</label>
+     <p className="text-sm text-slate-500">Add a name to narrow your search using both image and name.</p>
+     <input
+      id="person-name-input"
+      type="text"
+      value={personName}
+      onChange={e=>setPersonName(e.target.value)}
+      placeholder="e.g. Sarah Khan or username"
+      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:ring-violet-500/30"
+     />
+    </div>
+   </section>
+   <section aria-labelledby="pl" className={card}><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 id="pl" className="text-xl font-bold">Platforms to Search</h2><p className="text-sm text-slate-500">{plats.length} of 4 selected</p></div><button className="btn border border-violet-300 bg-white !text-violet-700 hover:bg-violet-50" onClick={()=>setPlats(all?[]:PLAT.map(p=>p[0]))}>{all?'Clear all':'Select all'}</button></div>
+    <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">{PLAT.map(([id,n,d])=>{const on=plats.includes(id);return <button key={id} aria-pressed={on} onClick={()=>toggle(id)} className={`relative flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${on?'border-violet-500 bg-violet-50 dark:bg-violet-500/20':'border-slate-200 bg-white opacity-80 dark:border-white/10 dark:bg-white/5'}`}><PL p={id} s={40}/><span className="font-bold">{n}</span><span className="text-xs text-slate-500 dark:text-slate-300">{d}</span><span className={`absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full border transition ${on?'border-violet-600 bg-violet-600 text-white':'border-slate-300'}`}>{on&&<Check size={14}/>}</span></button>})}</div></section>
+   <section aria-labelledby="sm" className={card}><h2 id="sm" className="text-xl font-bold">Try It With a Sample Image</h2><p className="text-sm text-slate-500">Explore the demo using one of these sample images.</p>
+    <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">{SAMPLES.map(([src,name])=>{const on=sel?.sample&&sel.name===name;return <button key={name} aria-label={`Use ${name}`} aria-pressed={!!on} onClick={()=>void sample(src,name)} className={`relative overflow-hidden rounded-xl border-2 transition hover:-translate-y-0.5 hover:shadow-lg ${on?'border-violet-600 ring-2 ring-violet-300':'border-transparent'}`}><img src={src} alt={`Sample portrait ${name}`} className="aspect-[4/5] w-full object-cover"/>{on&&<span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-violet-600 text-white"><Check size={12}/></span>}</button>})}</div></section>
+   <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"><ShieldCheck className="mt-0.5 shrink-0 text-blue-600" size={20}/><p>Your image should only be used for the search you request. Secure storage, automatic deletion, and retention policies must be enforced by the backend when integrated. <b>In this demo your image is not uploaded anywhere.</b></p></div>
+   <div className="text-center"><button className="btn grad-anim !h-14 w-full max-w-md !rounded-xl text-base disabled:opacity-50" disabled={!ready||busy} aria-busy={busy} onClick={()=>void run()}>{busy?<><Loader2 className="animate-spin" size={18}/>Preparing demo search…</>:<><Search size={18}/>Search Across Platforms</>}</button>
+    <p role="status" className="mt-3 text-sm text-slate-500">{!sel?'Select or upload an image to enable search.':!plats.length?'Select at least one platform.':busy?'Please wait…':''}</p>
+    {result&&<div role="status" className="enter mx-auto mt-4 max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900"><p className="flex items-center gap-2 font-semibold"><Info size={16}/>Demo state – no live search performed</p><p className="mt-1">{result} The Search Results page is the next step and has not been built yet.</p></div>}</div>
+  </div></div></>}</Shell>}

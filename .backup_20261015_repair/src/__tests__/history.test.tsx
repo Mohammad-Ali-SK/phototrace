@@ -1,0 +1,28 @@
+import {describe,it,expect,vi,beforeEach,afterEach} from 'vitest';
+import {render,screen,cleanup,fireEvent,within} from '@testing-library/react';
+import App from '../App';
+const open=async()=>{window.location.hash='#/history';render(<App/>);fireEvent.click(await screen.findByRole('button',{name:'Load sample demo history'}))};
+beforeEach(()=>{localStorage.clear();window.scrollTo=vi.fn();vi.stubGlobal('fetch',vi.fn(async()=>new Response('{"detail":"no"}',{status:401})))});
+afterEach(()=>{cleanup();vi.unstubAllGlobals()});
+describe('search history (guest demo data)',()=>{
+ it('shows the empty state, then sample history, and filters by tab',async()=>{await open();expect(await screen.findByText('“sarah khan”')).toBeTruthy();
+  fireEvent.click(screen.getByRole('tab',{name:/Photo Searches/}));expect(await screen.findByText('sample-portrait.jpg')).toBeTruthy();expect(screen.queryByText('“sarah khan”')).toBeNull();
+  fireEvent.click(screen.getByRole('tab',{name:/Name Searches/}));expect(await screen.findByText('“travelwithme”')).toBeTruthy()});
+ it('filters by text and by date range',async()=>{await open();await screen.findByText('“sarah khan”');
+  fireEvent.change(screen.getByLabelText('Filter by text'),{target:{value:'travel'}});expect(screen.getByText('“travelwithme”')).toBeTruthy();expect(screen.queryByText('“sarah khan”')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Clear filters'}));fireEvent.change(screen.getByLabelText('Date'),{target:{value:'7d'}});
+  expect(screen.getByText('“sarah khan”')).toBeTruthy();expect(screen.queryByText('“john.doe”')).toBeNull();expect(screen.queryByText('“travelwithme”')).toBeNull();
+  fireEvent.change(screen.getByLabelText('Filter by text'),{target:{value:'zzz'}});expect(screen.getByText('No searches match your filters')).toBeTruthy()});
+ it('sorts oldest first',async()=>{await open();await screen.findByText('“sarah khan”');fireEvent.change(screen.getByLabelText('Sort'),{target:{value:'oldest'}});
+  const first=screen.getAllByRole('listitem')[0];expect(within(first).getByText('“john.doe”')).toBeTruthy()});
+ it('deletes one entry only after confirmation, and Clear All asks first',async()=>{await open();await screen.findByText('“sarah khan”');
+  fireEvent.click(screen.getByRole('button',{name:'Delete search john.doe'}));fireEvent.click(screen.getByRole('button',{name:'Cancel'}));expect(screen.getByText('“john.doe”')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Delete search john.doe'}));fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button',{name:'Delete'}));expect(await screen.findByText('Search deleted.')).toBeTruthy();expect(screen.queryByText('“john.doe”')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Clear All'}));expect(screen.getByRole('alertdialog')).toBeTruthy();fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button',{name:'Clear all'}));
+  expect(await screen.findByText('No search history yet')).toBeTruthy()});
+ it('lists saved results, disables the link without a source URL, and removes after confirmation',async()=>{await open();await screen.findByText('“sarah khan”');
+  fireEvent.click(screen.getByRole('tab',{name:/Saved Results/}));expect(await screen.findByText('@sarah_diaries')).toBeTruthy();expect(screen.getAllByText('Preview only – no source link').length).toBe(2);expect(screen.queryByText(/Open original page/)).toBeNull();
+  fireEvent.click(screen.getAllByRole('button',{name:/Remove from saved/})[0]);fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button',{name:'Remove'}));
+  expect(await screen.findByText('Removed from saved results.')).toBeTruthy();expect(screen.getAllByRole('button',{name:/Remove from saved/}).length).toBe(1)});
+ it('keeps guest data in a guest-only key',async()=>{await open();await screen.findByText('“sarah khan”');expect(localStorage.getItem('pt_guest_history')).toBeTruthy();expect(Object.keys(localStorage).every(k=>k.startsWith('pt_'))).toBe(true)});
+});
